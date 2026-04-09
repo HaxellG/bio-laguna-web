@@ -3,7 +3,6 @@ export interface SensorReading {
   timestamp: Date;
   temperature: number; // °C
   ph: number;
-  salinity: number;    // ppt
   turbidity: number;   // NTU
 }
 
@@ -36,7 +35,7 @@ export interface DOPrediction {
 }
 
 // ── Custom chart config ───────────────────────────────────────────────────
-export type SensorVariable = 'temperature' | 'ph' | 'salinity' | 'turbidity';
+export type SensorVariable = 'temperature' | 'ph' | 'turbidity';
 
 export interface CustomChart {
   id: string;

@@ -428,7 +428,7 @@ export default function DashboardPage() {
               <CustomChartCard
                 key={c.id}
                 chart={c}
-                readings={getReadingsInRange(selectedZoneId, c.from, c.to)}
+                readings={readings}
                 onRemove={() => removeCustomChart(c.id)}
               />
             ))}
