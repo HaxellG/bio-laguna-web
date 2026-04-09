@@ -100,7 +100,6 @@ export default function DashboardPage() {
       timestamp: format(r.timestamp, 'yyyy-MM-dd HH:mm:ss'),
       temperature_C: r.temperature,
       ph: r.ph,
-      salinity_ppt: r.salinity,
       turbidity_NTU: r.turbidity,
     }));
     downloadCSV(rows, `bio_analytics_${selectedZoneId}.csv`);
