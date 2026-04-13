@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from '../_utils/supabase';
+import { supabase } from '../_utils/supabase.js';
 
 // Helper: promediar lecturas (copiado de sensorService lógica original)
 function avgReadings(list: any[]) {
