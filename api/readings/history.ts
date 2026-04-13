@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data, error } = await query;
     if (error) throw error;
 
-    const readings = (data || []).map(row => ({
+    const readings = (data || []).map((row: any) => ({
       timestamp: new Date(row.created_at),
       temperature: row.temperature,
       ph: row.ph,

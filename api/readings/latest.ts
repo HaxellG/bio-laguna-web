@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { deviceCodes, zoneId } = req.query;
+  const { deviceCodes } = req.query;
 
   try {
     let query = supabase

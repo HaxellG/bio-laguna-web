@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: error.message });
     }
 
-    const uniqueDevices = new Set(devices.map(d => d.device_id));
+    const uniqueDevices = new Set((devices || []).map((d: any) => d.device_id));
 
     // Zone Mock basado en los datos reales (Zona Global)
     const mockZones = [
