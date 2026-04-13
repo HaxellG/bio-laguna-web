@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_utils/supabase';
+import { supabase, requireSupabase } from './_utils/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -7,6 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    requireSupabase();
     // Extraer registros recientes de live_measurements para mapear GPS a los devices
     const { data, error } = await supabase
       .from('live_measurements')

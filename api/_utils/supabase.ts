@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+export const supabaseUrl = process.env.SUPABASE_URL;
+export const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing environment variables for Supabase');
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
+  : null as any;
+
+export function requireSupabase() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(`Faltan variables de entorno en Vercel. SUPABASE_URL: ${!!supabaseUrl}, SUPABASE_ANON_KEY: ${!!supabaseKey}`);
+  }
 }
-
-export const supabase = createClient(supabaseUrl, supabaseKey);

@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_utils/supabase';
+import { supabase, requireSupabase } from './_utils/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -7,6 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    requireSupabase();
     // Para no romper la UI, enviaremos una zona "Global" pero contando los dispositivos reales.
     // Obtenemos los device_id únicos de live_measurements
     const { data: devices, error } = await supabase
