@@ -1,26 +1,84 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-
-const DEMO_RESPONSES: string[] = [
-  'Based on the current sensor data, the turbidity levels are elevated at 4.2 NTU. High turbidity can reduce photosynthesis in submerged vegetation, which in turn lowers dissolved oxygen production. Please monitor this closely.',
-  'The pH reading of 7.8 is within the healthy range for most freshwater species (6.5–8.5). However, a rising trend combined with high temperatures may signal algal growth.',
-  'Temperature at 26 °C is near the upper comfort threshold for many tropical freshwater species. I recommend correlating this with the dissolved oxygen prediction model in the Dashboard.',
-  'The salinity trend appears stable. Sudden changes in salinity stress osmoregulation in fish — I recommend setting alerts if it deviates more than ±3 ppt from baseline.',
-  'Note: I can provide theoretical analysis and interpret sensor trends, but I cannot generate charts directly. Please use the **Dashboard** for visual data.',
-];
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Simulate delay logic before replying
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  // Set the response headers to stream text to the frontend (Vercel AI SDK format)
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  // Optional but recommended for some Vercel environments to prevent buffering:
+  res.setHeader('X-Content-Type-Options', 'nosniff');
 
-  const reply = DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
+  const { messages } = req.body;
+  
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: 'Missing or invalid messages array' });
+  }
 
-  return res.status(200).json({
-    role: 'assistant',
-    content: reply,
-    timestamp: new Date().toISOString()
+  // Map input messages to LangChain compatible class instances
+  const lcMessages = messages.map((m: any) => {
+    if (m.role === 'user') return new HumanMessage({ content: m.content || '' });
+    return new AIMessage({ content: m.content || '' });
   });
+
+  const systemPrompt = `You are a helpful assistant that can interpret sensors data about the water quality for fishing recommendations. Always use concise responses.`;
+  
+  try {
+    // Initialize OpenAI LLM inside try/catch so missing API keys don't crash the server silently
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("Missing OPENAI_API_KEY in environment variables.");
+    }
+
+    const llm = new ChatOpenAI({
+      model: "gpt-4o-mini",
+      temperature: 0,
+    });
+    // 1. Connect to logic MCP server via SSE
+    const client = new MultiServerMCPClient({
+      bio_laguna: {
+        transport: "http",
+        url: "https://hndrgczzvwuwarxgafra.supabase.co/functions/v1/mcp-server/mcp",
+      }
+    });
+
+    const tools = await client.getTools();
+    
+    // 2. Create the LangGraph agent
+    const agent = createReactAgent({
+      llm,
+      tools,
+      prompt: systemPrompt,
+    });
+
+    // 3. Invoke the agent in streaming mode (streamEvents)
+    const eventStream = await agent.streamEvents(
+      { messages: lcMessages },
+      { version: 'v2' }
+    );
+
+    // 4. Stream events back using Vercel AI protocol (0: text chunks)
+    for await (const event of eventStream) {
+      if (
+        event.event === "on_chat_model_stream" &&
+        event.data?.chunk?.content
+      ) {
+        // Vercel AI text chunk protocol: '0:"text chunk goes here"\n'
+        const textChunk = event.data.chunk.content;
+        res.write(`0:${JSON.stringify(textChunk)}\n`);
+      }
+    }
+  } catch (err: any) {
+    console.error("Agent error:", err);
+    // Send an error chunk
+    res.write(`3:${JSON.stringify(err.message || 'Internal error')}\n`);
+  } finally {
+    // 5. Close response stream
+    res.end();
+  }
 }

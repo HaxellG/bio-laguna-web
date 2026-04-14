@@ -97,7 +97,7 @@ export default function ChatPage() {
         <div className="flex items-end gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary-300 focus-within:border-primary-300 transition-all">
           <textarea
             rows={1}
-            value={input}
+            value={input || ''}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Pregunta sobre calidad del agua, tendencias de sensores o análisis ambiental…"
@@ -105,7 +105,7 @@ export default function ChatPage() {
           />
           <button
             onClick={submit}
-            disabled={!input.trim() || loading}
+            disabled={!(input || '').trim() || loading}
             className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary-500 hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors"
           >
             <span className="material-icons-round text-lg">send</span>
