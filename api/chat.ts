@@ -81,4 +81,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 5. Close response stream
     res.end();
   }
+  
+  return;
 }
