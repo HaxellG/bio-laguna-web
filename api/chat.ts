@@ -9,9 +9,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Configurar headers para streaming
+  // Set the response headers to stream text to the frontend (Vercel AI SDK format)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
+  // Optional but recommended for some Vercel environments to prevent buffering:
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   const { messages } = req.body;
@@ -20,97 +21,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing or invalid messages array' });
   }
 
-  // Mapear mensajes
+  // Map input messages to LangChain compatible class instances
   const lcMessages = messages.map((m: any) => {
     if (m.role === 'user') return new HumanMessage({ content: m.content || '' });
     return new AIMessage({ content: m.content || '' });
   });
 
-  // Prompt mejorado para que entienda cómo usar las dos herramientas juntas
-  const systemPrompt = `You are the Virtual Biologist of Bio-Laguna, an expert in water quality and hypoxia prediction.
-  
-You have access to two distinct systems:
-1. A Database (bio_laguna): Use this to fetch the absolute latest sensor readings (temperature, pH, turbidity).
-2. An AI Prediction Engine (bio_laguna_ai): Use this to calculate the hypoxia risk.
-
-WORKFLOW INSTRUCTIONS:
-When asked about the current water status or risk:
-Step 1: ALWAYS call the database tool first to get the latest live measurements.
-Step 2: Extract 'temperature', 'ph', and 'turbidity' from the database response.
-Step 3: Call the AI Prediction tool ('bio_laguna_prediction_analizar_calidad_agua') using those EXACT extracted values. For 'hora_decimal', leave it empty or pass null unless specifically asked for a time.
-Step 4: Use the AI's response (Oxygen, Risk, and Traffic Light color) to formulate your final answer.
-
-Always respond in a concise, warm, and regional tone (e.g., 'Epa compae', 'Oiga patrón').`;
+  const systemPrompt = `You are a helpful assistant that can interpret sensors data about the water quality for fishing recommendations. Always use concise responses.`;
   
   try {
+    // Initialize OpenAI LLM inside try/catch so missing API keys don't crash the server silently
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("Missing OPENAI_API_KEY in environment variables.");
-    }
-    if (!process.env.HF_TOKEN) {
-      throw new Error("Missing HF_TOKEN in environment variables.");
     }
 
     const llm = new ChatOpenAI({
       model: "gpt-4o-mini",
       temperature: 0,
     });
-
-    // 1. Conectar a AMBOS servidores MCP
+    // 1. Connect to logic MCP server via SSE
     const client = new MultiServerMCPClient({
-      // Servidor 1: Supabase (Lectura de datos)
       bio_laguna: {
-        transport: "http", // SSE
+        transport: "http",
         url: "https://hndrgczzvwuwarxgafra.supabase.co/functions/v1/mcp-server/mcp",
-      },
-      // Servidor 2: Hugging Face (Inferencia AI)
-      bio_laguna_ai: {
-        transport: "stdio",
-        command: "npx",
-        args: [
-          "-y",
-          "@smithery/cli@latest",
-          "run",
-          "mcp-remote",
-          "https://aidatatestrole-bio-laguna-prediction.hf.space/gradio_api/mcp/",
-          "--transport",
-          "streamable-http",
-          "--header",
-          `Authorization=Bearer ${process.env.HF_TOKEN}` // Inyectamos el token de forma segura
-        ]
       }
     });
 
-    // Obtener las herramientas de ambos servidores unificadas
     const tools = await client.getTools();
     
-    // 2. Crear el Agente LangGraph
+    // 2. Create the LangGraph agent
     const agent = createReactAgent({
       llm,
       tools,
       prompt: systemPrompt,
     });
 
-    // 3. Invocar el agente en modo streaming
+    // 3. Invoke the agent in streaming mode (streamEvents)
     const eventStream = await agent.streamEvents(
       { messages: lcMessages },
       { version: 'v2' }
     );
 
-    // 4. Procesar el stream para Vercel AI SDK
+    // 4. Stream events back using Vercel AI protocol (0: text chunks)
     for await (const event of eventStream) {
       if (
         event.event === "on_chat_model_stream" &&
         event.data?.chunk?.content
       ) {
+        // Vercel AI text chunk protocol: '0:"text chunk goes here"\n'
         const textChunk = event.data.chunk.content;
         res.write(`0:${JSON.stringify(textChunk)}\n`);
       }
     }
   } catch (err: any) {
     console.error("Agent error:", err);
+    // Send an error chunk
     res.write(`3:${JSON.stringify(err.message || 'Internal error')}\n`);
   } finally {
-    // 5. Cerrar la conexión
+    // 5. Close response stream
     res.end();
   }
   
