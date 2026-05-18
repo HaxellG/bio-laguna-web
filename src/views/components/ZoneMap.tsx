@@ -33,6 +33,7 @@ interface Props {
   mapDevices?: MapDevice[];
   selectedDeviceId?: string | null;
   onDeviceClick?: (deviceId: string) => void;
+  onDeviceClose?: (deviceId: string) => void;
 }
 
 function FitBounds({ mapDevices, zones }: { mapDevices: MapDevice[]; zones: Zone[] }) {
@@ -55,7 +56,7 @@ function FitBounds({ mapDevices, zones }: { mapDevices: MapDevice[]; zones: Zone
   return null;
 }
 
-export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDeviceClick }: Props) {
+export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDeviceClick, onDeviceClose }: Props) {
   const center: [number, number] = useMemo(() => {
     if (mapDevices.length > 0) {
       return [
@@ -97,6 +98,7 @@ export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDe
                 icon={buoyIcon}
                 eventHandlers={{
                   click: () => onDeviceClick?.(d.device_id),
+                  popupclose: () => onDeviceClose?.(d.device_id),
                 }}
               >
                 <Popup>

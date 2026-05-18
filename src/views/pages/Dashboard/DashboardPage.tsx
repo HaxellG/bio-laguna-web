@@ -94,6 +94,18 @@ export default function DashboardPage() {
     }
   }, [selectedDeviceId]);
 
+  // Handle when the popup is closed manually via "X" or when switching
+  const handleDeviceClose = useCallback((deviceId: string) => {
+    setSelectedDeviceId((prev) => (prev === deviceId ? null : prev));
+  }, []);
+
+  // Sync deviceReading clear when selectedDeviceId is cleared
+  useEffect(() => {
+    if (!selectedDeviceId) {
+      setDeviceReading(null);
+    }
+  }, [selectedDeviceId]);
+
   // Device code input state
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
@@ -353,6 +365,7 @@ export default function DashboardPage() {
               mapDevices={filteredMapDevices}
               selectedDeviceId={selectedDeviceId}
               onDeviceClick={handleDeviceClick}
+              onDeviceClose={handleDeviceClose}
             />
           </Suspense>
 
