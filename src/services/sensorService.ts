@@ -1,4 +1,4 @@
-import { Zone, Device, SensorReading, DOPrediction } from '../models';
+import { Zone, Device, SensorReading, DOPrediction, MapDevice, DeviceReading } from '../models';
 
 const API_BASE = '/api'; // Servido por Vercel local/remoto
 
@@ -14,6 +14,22 @@ export async function getAllDevices(): Promise<Device[]> {
   const res = await fetch(`${API_BASE}/devices`);
   if (!res.ok) throw new Error('Error fetching devices');
   return res.json();
+}
+
+/** Obtener lista de dispositivos con ubicación (para el mapa) */
+export async function getMapDevices(): Promise<MapDevice[]> {
+  const res = await fetch(`${API_BASE}/devices`);
+  if (!res.ok) throw new Error('Error fetching map devices');
+  return res.json();
+}
+
+/** Obtener la última lectura de un dispositivo específico */
+export async function getDeviceReading(deviceId: string): Promise<DeviceReading | null> {
+  const res = await fetch(`${API_BASE}/readings/device?deviceId=${encodeURIComponent(deviceId)}`);
+  if (!res.ok) throw new Error('Error fetching device reading');
+  const data = await res.json();
+  if (!data) return null;
+  return { ...data, timestamp: new Date(data.timestamp) };
 }
 
 export async function getLatestReading(zoneId: string): Promise<SensorReading | null> {

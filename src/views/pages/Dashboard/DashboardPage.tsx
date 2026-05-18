@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useRef } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useDashboard } from '../../../controllers/dashboardController';
 import SensorCard from '../../components/SensorCard';
@@ -6,9 +6,9 @@ import SensorChart from '../../components/SensorChart';
 import DOPredictionChart from '../../components/DOPredictionChart';
 import CustomChartCard from '../../components/CustomChartCard';
 import TimeRangeSelector from '../../components/TimeRangeSelector';
-import { FilterMode, SensorVariable } from '../../../models';
+import { FilterMode, SensorVariable, MapDevice, DeviceReading } from '../../../models';
 import { downloadCSV } from '../../../utils/download';
-import { getReadingsInRange } from '../../../services/sensorService';
+import { getMapDevices, getDeviceReading } from '../../../services/sensorService';
 
 const ZoneMap = lazy(() => import('../../components/ZoneMap'));
 
@@ -46,6 +46,46 @@ export default function DashboardPage() {
     isLoadingSeries,
     globalError,
   } = useDashboard();
+
+  // ── Map devices state (new: from get_devices_latest_location) ──────────
+  const [mapDevices, setMapDevices] = useState<MapDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [deviceReading, setDeviceReading] = useState<DeviceReading | null>(null);
+  const [isLoadingDeviceReading, setIsLoadingDeviceReading] = useState(false);
+
+  // Load map devices on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const devices = await getMapDevices();
+        setMapDevices(devices);
+      } catch (err) {
+        console.error('Failed to load map devices:', err);
+      }
+    })();
+  }, []);
+
+  // Handle buoy click on the map
+  const handleDeviceClick = useCallback(async (deviceId: string) => {
+    // Toggle: click same buoy again to deselect
+    if (selectedDeviceId === deviceId) {
+      setSelectedDeviceId(null);
+      setDeviceReading(null);
+      return;
+    }
+
+    setSelectedDeviceId(deviceId);
+    setIsLoadingDeviceReading(true);
+    setDeviceReading(null);
+    try {
+      const reading = await getDeviceReading(deviceId);
+      setDeviceReading(reading);
+    } catch (err) {
+      console.error('Failed to load device reading:', err);
+    } finally {
+      setIsLoadingDeviceReading(false);
+    }
+  }, [selectedDeviceId]);
 
   // Device code input state
   const [codeInput, setCodeInput] = useState('');
@@ -120,7 +160,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Active Bio-Lagunas ──────────────────────────────────────────── */}
+      {/* ── Active Bio-Lagunas (contains map + in-card device readings) ── */}
       <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap">
@@ -128,7 +168,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bio-Lagunas Activas</p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none flex items-center gap-2">
-                {isLoadingInit ? <span className="animate-pulse h-6 w-8 bg-gray-200 rounded inline-block" /> : totalDevices}
+                {isLoadingInit ? <span className="animate-pulse h-6 w-8 bg-gray-200 rounded inline-block" /> : mapDevices.length}
                 <span className="text-base font-medium text-gray-400">Dispositivos</span>
               </p>
             </div>
@@ -300,36 +340,103 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          <Suspense fallback={<div className="w-full h-64 bg-gray-100 rounded-xl animate-pulse" />}>
-            <ZoneMap zones={zones} devices={allDevices} />
+          <Suspense fallback={<div className="w-full h-80 sm:h-96 bg-gray-100 rounded-xl animate-pulse" />}>
+            <ZoneMap
+              zones={zones}
+              mapDevices={mapDevices}
+              selectedDeviceId={selectedDeviceId}
+              onDeviceClick={handleDeviceClick}
+            />
           </Suspense>
-        </div>
-      </section>
 
-      {/* ── Real-time sensor readings ────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="font-bold text-gray-900 text-lg">Monitoreo Ambiental en Tiempo Real</h2>
-            <p className="text-sm text-gray-400">Datos en vivo de los nodos seleccionados</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="material-icons-round text-sm text-gray-400">{filterMode === 'zone' ? 'map' : 'memory'}</span>
-            <span className="text-xs text-gray-500 font-medium">
-              {filterMode === 'zone'
-                ? zones.find((z) => z.id === selectedZoneId)?.name ?? '–'
-                : selectedDeviceCodes.length > 0
-                  ? selectedDeviceCodes.join(', ')
-                  : 'Ningún dispositivo seleccionado'}
-            </span>
-          </div>
+          {/* Hint to click a buoy */}
+          {!selectedDeviceId && mapDevices.length > 0 && (
+            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5 justify-center">
+              <span className="material-icons-round text-sm">touch_app</span>
+              Haz clic en una boya del mapa para ver sus lecturas en tiempo real
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <SensorCard label="Temperatura" value={latestReading?.temperature.toFixed(1) ?? '–'} unit="°C"  icon="thermostat"  color="text-orange-500" isLoading={isLoadingLatest} />
-          <SensorCard label="Nivel de pH" value={latestReading?.ph.toFixed(2) ?? '–'}           unit=""    icon="science"     color="text-green-500" isLoading={isLoadingLatest} />
-          <SensorCard label="Turbidez"    value={latestReading?.turbidity.toFixed(2) ?? '–'}    unit="NTU" icon="waves"       color="text-violet-500" isLoading={isLoadingLatest} />
-        </div>
+        {/* ── In-card device reading panel (appears on buoy click) ──────── */}
+        {selectedDeviceId && (
+          <div key={selectedDeviceId} className="sensor-panel-enter">
+            <div className="border border-primary-100 rounded-2xl bg-gradient-to-br from-primary-50/60 to-white p-4 space-y-3">
+              {/* Panel header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <span className="material-icons-round text-primary-600" style={{ fontSize: '20px' }}>sensors</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Monitoreo en Tiempo Real</h3>
+                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                      <span className="material-icons-round" style={{ fontSize: '12px' }}>memory</span>
+                      <span className="font-medium text-primary-600">{selectedDeviceId}</span>
+                      {deviceReading && (
+                        <>
+                          <span className="text-gray-300 mx-0.5">·</span>
+                          <span>{format(deviceReading.timestamp, 'dd/MM/yyyy HH:mm:ss')}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setSelectedDeviceId(null); setDeviceReading(null); }}
+                  className="p-1.5 rounded-xl hover:bg-white/80 text-gray-400 hover:text-gray-600 transition-all"
+                  aria-label="Cerrar panel de lecturas"
+                >
+                  <span className="material-icons-round" style={{ fontSize: '18px' }}>close</span>
+                </button>
+              </div>
+
+              {/* Sensor cards grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <SensorCard
+                  label="Temperatura"
+                  value={deviceReading?.temperature.toFixed(1) ?? '–'}
+                  unit="°C"
+                  icon="thermostat"
+                  color="text-orange-500"
+                  isLoading={isLoadingDeviceReading}
+                />
+                <SensorCard
+                  label="Nivel de pH"
+                  value={deviceReading?.ph.toFixed(2) ?? '–'}
+                  unit=""
+                  icon="science"
+                  color="text-green-500"
+                  isLoading={isLoadingDeviceReading}
+                />
+                <SensorCard
+                  label="Turbidez"
+                  value={deviceReading?.turbidity.toFixed(2) ?? '–'}
+                  unit="NTU"
+                  icon="waves"
+                  color="text-violet-500"
+                  isLoading={isLoadingDeviceReading}
+                />
+                <SensorCard
+                  label="Conductividad"
+                  value={deviceReading?.conductivity.toFixed(2) ?? '–'}
+                  unit="µS/cm"
+                  icon="electric_bolt"
+                  color="text-cyan-500"
+                  isLoading={isLoadingDeviceReading}
+                />
+                <SensorCard
+                  label="Oxígeno Disuelto"
+                  value={deviceReading?.dissolved_oxygen?.toFixed(2) ?? '–'}
+                  unit="mg/L"
+                  icon="water_drop"
+                  color="text-blue-500"
+                  isLoading={isLoadingDeviceReading}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── DO Prediction ───────────────────────────────────────────────── */}

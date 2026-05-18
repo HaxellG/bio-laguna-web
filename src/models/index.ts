@@ -26,6 +26,26 @@ export interface Device {
   readings: SensorReading[];
 }
 
+// ── Map Device (simplified from get_devices_latest_location RPC) ─────────
+export interface MapDevice {
+  device_id: string;
+  lat: number;
+  lon: number;
+}
+
+// ── Single device latest reading ──────────────────────────────────────────
+export interface DeviceReading {
+  device_id: string;
+  timestamp: Date;
+  temperature: number;
+  ph: number;
+  turbidity: number;
+  conductivity: number;
+  dissolved_oxygen: number | null;
+  lat: number;
+  lon: number;
+}
+
 export type FilterMode = 'zone' | 'device';
 
 // ── Dissolved-oxygen prediction point ────────────────────────────────────

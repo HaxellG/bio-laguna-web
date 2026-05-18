@@ -12,7 +12,7 @@ export default async function handler(
   try {
     requireSupabase();
 
-    // Obtener última ubicación válida de cada device
+    // Obtener última ubicación válida de cada device usando la función RPC
     const { data, error } = await supabase
       .rpc('get_devices_latest_location');
 
@@ -22,13 +22,11 @@ export default async function handler(
       });
     }
 
+    // Retornar la lista limpia: solo device_id, lat, lon
     const devices = (data || []).map((record: any) => ({
-      code: record.device_id,
-      zoneId: 'global-zone',
-      zoneName: 'Zona 1 – Bio-Laguna Global',
+      device_id: record.device_id,
       lat: record.lat,
-      lng: record.lon,
-      readings: [] // vacío por performance
+      lon: record.lon,
     }));
 
     return res.status(200).json(devices);

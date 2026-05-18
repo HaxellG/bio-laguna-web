@@ -23,6 +23,68 @@
   background: #9ca3af;
 }
 
+/* Selected buoy marker pulse */
+.selected-buoy-marker {
+  filter: hue-rotate(200deg) brightness(1.2);
+  animation: buoyPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes buoyPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Sensor panel slide-in */
+.sensor-panel-enter {
+  animation: sensorSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes sensorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Custom Leaflet popup styling ──────────────────────────────────────── */
+.leaflet-popup-content-wrapper {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(74, 143, 227, 0.15) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-width: 180px;
+}
+
+.leaflet-popup-tip {
+  background: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+  top: 4px !important;
+  right: 4px !important;
+  transition: color 0.15s ease;
+  z-index: 10;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #475569 !important;
+}
+
 /* Material Icons */
 .material-icons-round {
   font-family: 'Material Icons Round';
