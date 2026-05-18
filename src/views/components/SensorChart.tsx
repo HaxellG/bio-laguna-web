@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  Label,
 } from 'recharts';
 import { format } from 'date-fns';
 import { SensorReading } from '../../models';
@@ -58,8 +59,13 @@ export default function SensorChart({ title, dataKey, color, unit, readings, cha
         </div>
       </div>
       {isLoading ? (
-        <div className="w-full h-[200px] bg-gray-50 rounded-xl animate-pulse flex items-center justify-center border border-gray-100">
+        <div className="w-full h-[200px] bg-gray-50 rounded-xl animate-pulse flex items-center justify-center border border-gray-100 mt-4">
             <span className="text-gray-400 text-sm font-medium">Cargando métricas...</span>
+        </div>
+      ) : readings.length === 0 ? (
+        <div className="w-full h-[200px] bg-gray-50/50 rounded-xl flex flex-col items-center justify-center border border-dashed border-gray-200 gap-2 mt-4">
+            <span className="material-icons-round text-gray-300 text-3xl">query_stats</span>
+            <span className="text-gray-400 text-sm font-medium">No se encontraron datos para este rango</span>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
@@ -76,7 +82,9 @@ export default function SensorChart({ title, dataKey, color, unit, readings, cha
               tickLine={false}
               axisLine={false}
               unit={unit}
-            />
+            >
+              <Label value={`${title}${unit ? ` (${unit})` : ''}`} angle={-90} position="insideLeft" style={{ fontSize: 10, fill: '#6b7280' }} />
+            </YAxis>
             <Tooltip
               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 24px #0001', fontSize: 12 }}
               formatter={(v: number) => [`${v} ${unit}`, title]}

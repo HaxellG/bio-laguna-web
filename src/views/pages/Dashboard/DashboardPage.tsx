@@ -13,9 +13,10 @@ import { getMapDevices, getDeviceReading } from '../../../services/sensorService
 const ZoneMap = lazy(() => import('../../components/ZoneMap'));
 
 const VARIABLE_OPTIONS: { value: SensorVariable; label: string }[] = [
-  { value: 'temperature', label: 'Temperatura (°C)' },
-  { value: 'ph',          label: 'pH'               },
-  { value: 'turbidity',   label: 'Turbidez (NTU)'   },
+  { value: 'temperature',      label: 'Temperatura (°C)' },
+  { value: 'ph',               label: 'pH'               },
+  { value: 'turbidity',        label: 'Turbidez (NTU)'   },
+  { value: 'dissolved_oxygen', label: 'Oxígeno Disuelto' },
 ];
 
 export default function DashboardPage() {
@@ -490,9 +491,10 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <SensorChart title="Variación de Temperatura" dataKey="temperature" color="#f97316" unit="°C"  readings={readings} chartId="hist-temp" isLoading={isLoadingSeries} />
-          <SensorChart title="Estabilidad de pH"         dataKey="ph"          color="#22c55e" unit=""    readings={readings} chartId="hist-ph"   isLoading={isLoadingSeries} />
-          <SensorChart title="Niveles de Turbidez"       dataKey="turbidity"   color="#8b5cf6" unit=" NTU" readings={readings} chartId="hist-turb" isLoading={isLoadingSeries} />
+          <SensorChart title="Niveles de Temperatura"       dataKey="temperature" color="#f97316" unit="°C"  readings={readings} chartId="hist-temp" isLoading={isLoadingSeries} />
+          <SensorChart title="Niveles de pH"                dataKey="ph"          color="#22c55e" unit=""    readings={readings} chartId="hist-ph"   isLoading={isLoadingSeries} />
+          <SensorChart title="Niveles de Turbidez"          dataKey="turbidity"   color="#8b5cf6" unit=" NTU" readings={readings} chartId="hist-turb" isLoading={isLoadingSeries} />
+          <SensorChart title="Niveles de Oxígeno Disuelto"  dataKey="dissolved_oxygen" color="#3b82f6" unit=" mg/L" readings={readings} chartId="hist-do" isLoading={isLoadingSeries} />
         </div>
       </section>
 

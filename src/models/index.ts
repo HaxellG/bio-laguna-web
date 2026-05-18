@@ -4,6 +4,7 @@ export interface SensorReading {
   temperature: number; // °C
   ph: number;
   turbidity: number;   // NTU
+  dissolved_oxygen?: number | null; // mg/L
 }
 
 // ── Zone ─────────────────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ export interface DOPrediction {
 }
 
 // ── Custom chart config ───────────────────────────────────────────────────
-export type SensorVariable = 'temperature' | 'ph' | 'turbidity';
+export type SensorVariable = 'temperature' | 'ph' | 'turbidity' | 'dissolved_oxygen';
 
 export interface CustomChart {
   id: string;

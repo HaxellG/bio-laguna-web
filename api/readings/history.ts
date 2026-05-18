@@ -36,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ph: row.ph,
       // Mapeamos conductivity a salinity para que el front no se rompa
       salinity: row.conductivity || 0, 
-      turbidity: row.turbidity
+      turbidity: row.turbidity,
+      dissolved_oxygen: row.dissolved_oxygen ?? null
     }));
 
     // TODO: Si el frontend se traba con muchos puntos (ej. 7 días de datos per minuto),
