@@ -4,10 +4,20 @@ import { ChatOpenAI } from "@langchain/openai";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 
+const secretKey = process.env.MOBILE_APP_SECRET;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+
+ if (
+   req.headers['secret-key']; !== secretKey;
+ ) {
+   return res.status(401).json({
+     error: 'Unauthorized'
+   });
+ }
 
   // Set the response headers to stream text to the frontend (Vercel AI SDK format)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
