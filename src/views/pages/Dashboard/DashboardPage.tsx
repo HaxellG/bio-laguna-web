@@ -73,25 +73,13 @@ export default function DashboardPage() {
   }, [mapDevices, filterMode, selectedDeviceCodes]);
 
   // Handle buoy click on the map
-  const handleDeviceClick = useCallback(async (deviceId: string) => {
+  const handleDeviceClick = useCallback((deviceId: string) => {
     // Toggle: click same buoy again to deselect
     if (selectedDeviceId === deviceId) {
       setSelectedDeviceId(null);
-      setDeviceReading(null);
       return;
     }
-
     setSelectedDeviceId(deviceId);
-    setIsLoadingDeviceReading(true);
-    setDeviceReading(null);
-    try {
-      const reading = await getDeviceReading(deviceId);
-      setDeviceReading(reading);
-    } catch (err) {
-      console.error('Failed to load device reading:', err);
-    } finally {
-      setIsLoadingDeviceReading(false);
-    }
   }, [selectedDeviceId]);
 
   // Handle when the popup is closed manually via "X" or when switching
@@ -99,11 +87,38 @@ export default function DashboardPage() {
     setSelectedDeviceId((prev) => (prev === deviceId ? null : prev));
   }, []);
 
-  // Sync deviceReading clear when selectedDeviceId is cleared
+  // Fetch reading on select, clear on deselect, and poll every 15s
   useEffect(() => {
     if (!selectedDeviceId) {
       setDeviceReading(null);
+      setIsLoadingDeviceReading(false);
+      return;
     }
+
+    let isMounted = true;
+
+    const fetchReading = async (isBackground: boolean) => {
+      if (!isBackground && isMounted) setIsLoadingDeviceReading(true);
+      try {
+        const reading = await getDeviceReading(selectedDeviceId);
+        if (isMounted) setDeviceReading(reading);
+      } catch (err) {
+        console.error('Failed to load device reading:', err);
+      } finally {
+        if (!isBackground && isMounted) setIsLoadingDeviceReading(false);
+      }
+    };
+
+    // Initial fetch
+    fetchReading(false);
+
+    // Setup polling every 15 seconds (background update)
+    const interval = setInterval(() => fetchReading(true), 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [selectedDeviceId]);
 
   // Device code input state
@@ -402,13 +417,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => { setSelectedDeviceId(null); setDeviceReading(null); }}
-                  className="p-1.5 rounded-xl hover:bg-white/80 text-gray-400 hover:text-gray-600 transition-all"
-                  aria-label="Cerrar panel de lecturas"
-                >
-                  <span className="material-icons-round" style={{ fontSize: '18px' }}>close</span>
-                </button>
+
               </div>
 
               {/* Sensor cards grid */}
