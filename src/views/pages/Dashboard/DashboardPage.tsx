@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useRef, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useDashboard } from '../../../controllers/dashboardController';
 import SensorCard from '../../components/SensorCard';
