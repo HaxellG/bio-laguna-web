@@ -26,16 +26,7 @@ const buoyIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
-const selectedBuoyIcon = new L.Icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [30, 49],
-  iconAnchor: [15, 49],
-  popupAnchor: [1, -40],
-  shadowSize: [49, 49],
-  className: 'selected-buoy-marker',
-});
+
 
 interface Props {
   zones: Zone[];
@@ -91,8 +82,8 @@ export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDe
     >
       <FitBounds mapDevices={mapDevices} zones={zones} />
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       <ZoomControl position="bottomright" />
       
@@ -103,7 +94,7 @@ export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDe
               <Marker
                 key={d.device_id}
                 position={[d.lat, d.lon]}
-                icon={isSelected ? selectedBuoyIcon : buoyIcon}
+                icon={buoyIcon}
                 eventHandlers={{
                   click: () => onDeviceClick?.(d.device_id),
                 }}
@@ -149,7 +140,6 @@ export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDe
                     <div style={{
                       display: 'flex',
                       gap: '12px',
-                      marginBottom: '12px',
                     }}>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontSize: '10px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lat</p>
@@ -160,33 +150,6 @@ export default function ZoneMap({ zones, mapDevices = [], selectedDeviceId, onDe
                         <p style={{ margin: 0, fontSize: '12px', color: '#475569', fontWeight: 600, fontFamily: 'monospace' }}>{d.lon.toFixed(5)}</p>
                       </div>
                     </div>
-                    {/* CTA Button */}
-                    <button
-                      onClick={() => onDeviceClick?.(d.device_id)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        padding: '7px 12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#ffffff',
-                        background: isSelected
-                          ? 'linear-gradient(135deg, #2b6ec7 0%, #4a8fe3 100%)'
-                          : 'linear-gradient(135deg, #4a8fe3 0%, #5599e8 100%)',
-                        border: 'none',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span className="material-icons-round" style={{ fontSize: '14px' }}>
-                        {isSelected ? 'visibility' : 'touch_app'}
-                      </span>
-                      {isSelected ? 'Seleccionado' : 'Ver lecturas'}
-                    </button>
                   </div>
                 </Popup>
               </Marker>

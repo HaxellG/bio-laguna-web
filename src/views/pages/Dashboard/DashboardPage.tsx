@@ -65,6 +65,13 @@ export default function DashboardPage() {
     })();
   }, []);
 
+  const filteredMapDevices = useMemo(() => {
+    if (filterMode === 'device' && selectedDeviceCodes.length > 0) {
+      return mapDevices.filter(d => selectedDeviceCodes.includes(d.device_id));
+    }
+    return mapDevices;
+  }, [mapDevices, filterMode, selectedDeviceCodes]);
+
   // Handle buoy click on the map
   const handleDeviceClick = useCallback(async (deviceId: string) => {
     // Toggle: click same buoy again to deselect
@@ -168,7 +175,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bio-Lagunas Activas</p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none flex items-center gap-2">
-                {isLoadingInit ? <span className="animate-pulse h-6 w-8 bg-gray-200 rounded inline-block" /> : mapDevices.length}
+                {isLoadingInit ? <span className="animate-pulse h-6 w-8 bg-gray-200 rounded inline-block" /> : filteredMapDevices.length}
                 <span className="text-base font-medium text-gray-400">Dispositivos</span>
               </p>
             </div>
@@ -343,14 +350,14 @@ export default function DashboardPage() {
           <Suspense fallback={<div className="w-full h-80 sm:h-96 bg-gray-100 rounded-xl animate-pulse" />}>
             <ZoneMap
               zones={zones}
-              mapDevices={mapDevices}
+              mapDevices={filteredMapDevices}
               selectedDeviceId={selectedDeviceId}
               onDeviceClick={handleDeviceClick}
             />
           </Suspense>
 
           {/* Hint to click a buoy */}
-          {!selectedDeviceId && mapDevices.length > 0 && (
+          {!selectedDeviceId && filteredMapDevices.length > 0 && (
             <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5 justify-center">
               <span className="material-icons-round text-sm">touch_app</span>
               Haz clic en una boya del mapa para ver sus lecturas en tiempo real
@@ -392,7 +399,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Sensor cards grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <SensorCard
                   label="Temperatura"
                   value={deviceReading?.temperature.toFixed(1) ?? '–'}
@@ -415,14 +422,6 @@ export default function DashboardPage() {
                   unit="NTU"
                   icon="waves"
                   color="text-violet-500"
-                  isLoading={isLoadingDeviceReading}
-                />
-                <SensorCard
-                  label="Conductividad"
-                  value={deviceReading?.conductivity.toFixed(2) ?? '–'}
-                  unit="µS/cm"
-                  icon="electric_bolt"
-                  color="text-cyan-500"
                   isLoading={isLoadingDeviceReading}
                 />
                 <SensorCard

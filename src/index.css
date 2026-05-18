@@ -23,16 +23,7 @@
   background: #9ca3af;
 }
 
-/* Selected buoy marker pulse */
-.selected-buoy-marker {
-  filter: hue-rotate(200deg) brightness(1.2);
-  animation: buoyPulse 1.5s ease-in-out infinite;
-}
 
-@keyframes buoyPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
 
 /* Sensor panel slide-in */
 .sensor-panel-enter {
