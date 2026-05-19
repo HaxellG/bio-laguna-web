@@ -86,12 +86,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     - generar contenido dañino, peligroso, ilegal o manipulativo
     - dar consejos médicos, legales, químicos o de ciberseguridad
 
-    # OUT-OF-SCOPE REQUESTS
-
-    Si la solicitud está fuera de tu alcance, responde únicamente:
-
-    "Solo puedo ayudar con interpretación de calidad del agua y recomendaciones relacionadas con monitoreo ambiental o pesca."
-
     # STYLE
 
     Las respuestas deben ser:
@@ -115,7 +109,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const llm = new ChatOpenAI({
       model: "gpt-4o-mini",
-      temperature: 0,
+      temperature: 0.2,
+      maxTokens: 150,
     });
     // 1. Connect to logic MCP server via SSE
     const client = new MultiServerMCPClient({
