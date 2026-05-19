@@ -96,7 +96,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     Evita:
     - muchos emojis
-    - texto decorativo
     - listas innecesarias
     - respuestas largas
   `;
@@ -147,9 +146,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
   } catch (err: any) {
-    console.error("Agent error:", err);
-    // Send an error chunk
-    res.write(`3:${JSON.stringify(err.message || 'Internal error')}\n`);
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] ❌ Chat API Error:`);
+    console.error(err instanceof Error ? err.stack : err);
+    
+    // Send a default friendly message to the user instead of the raw error
+    const defaultResponse = "Lo siento, ocurrió un problema al procesar tu solicitud. Por favor, intenta de nuevo más tarde.";
+    res.write(`0:${JSON.stringify(defaultResponse)}\n`);
   } finally {
     // 5. Close response stream
     res.end();
