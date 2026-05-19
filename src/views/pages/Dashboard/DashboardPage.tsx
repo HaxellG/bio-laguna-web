@@ -20,6 +20,12 @@ const VARIABLE_OPTIONS: { value: SensorVariable; label: string }[] = [
 ];
 
 export default function DashboardPage() {
+  // ── Map devices state (new: from get_devices_latest_location) ──────────
+  const [mapDevices, setMapDevices] = useState<MapDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [deviceReading, setDeviceReading] = useState<DeviceReading | null>(null);
+  const [isLoadingDeviceReading, setIsLoadingDeviceReading] = useState(false);
+
   const {
     zones,
     totalDevices,
@@ -46,13 +52,9 @@ export default function DashboardPage() {
     isLoadingLatest,
     isLoadingSeries,
     globalError,
-  } = useDashboard();
+  } = useDashboard(selectedDeviceId);
 
-  // ── Map devices state (new: from get_devices_latest_location) ──────────
-  const [mapDevices, setMapDevices] = useState<MapDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [deviceReading, setDeviceReading] = useState<DeviceReading | null>(null);
-  const [isLoadingDeviceReading, setIsLoadingDeviceReading] = useState(false);
+
 
   // Load map devices on mount
   useEffect(() => {
@@ -462,40 +464,56 @@ export default function DashboardPage() {
       </section>
 
       {/* ── DO Prediction ───────────────────────────────────────────────── */}
-      <section className="space-y-2">
+      {/* <section className="space-y-2">
         <h2 className="font-bold text-gray-900 text-lg">Modelo de Predicciones</h2>
         <DOPredictionChart predictions={doPredictions} />
-      </section>
+      </section> */}
 
       {/* ── Historical Analysis ──────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h2 className="font-bold text-gray-900 text-lg">Análisis Histórico</h2>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <TimeRangeSelector
-              preset={preset}
-              onChange={setPreset}
-              customFrom={customFrom}
-              customTo={customTo}
-              onCustomFrom={setCustomFrom}
-              onCustomTo={setCustomTo}
-            />
-            <button
-              onClick={handleDownloadAllCSV}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-xl px-3 py-1.5 transition-colors"
-            >
-              <span className="material-icons-round text-sm">download</span>
-              Descargar todo CSV
-            </button>
-          </div>
+          {selectedDeviceId && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <TimeRangeSelector
+                preset={preset}
+                onChange={setPreset}
+                customFrom={customFrom}
+                customTo={customTo}
+                onCustomFrom={setCustomFrom}
+                onCustomTo={setCustomTo}
+              />
+              <button
+                onClick={handleDownloadAllCSV}
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-xl px-3 py-1.5 transition-colors"
+              >
+                <span className="material-icons-round text-sm">download</span>
+                Descargar todo CSV
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <SensorChart title="Niveles de Temperatura"       dataKey="temperature" color="#f97316" unit="°C"  readings={readings} chartId="hist-temp" isLoading={isLoadingSeries} />
-          <SensorChart title="Niveles de pH"                dataKey="ph"          color="#22c55e" unit=""    readings={readings} chartId="hist-ph"   isLoading={isLoadingSeries} />
-          <SensorChart title="Niveles de Turbidez"          dataKey="turbidity"   color="#8b5cf6" unit=" NTU" readings={readings} chartId="hist-turb" isLoading={isLoadingSeries} />
-          <SensorChart title="Niveles de Oxígeno Disuelto"  dataKey="dissolved_oxygen" color="#3b82f6" unit=" mg/L" readings={readings} chartId="hist-do" isLoading={isLoadingSeries} />
-        </div>
+        {!selectedDeviceId ? (
+          <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm gap-3 text-gray-400">
+            <span className="material-icons-round text-4xl">touch_app</span>
+            <p className="text-sm font-medium">Selecciona una boya del mapa para ver su historial de datos.</p>
+          </div>
+        ) : (
+          <>
+            {readings.length > 0 && preset === 'last_available' && (
+              <p className="text-xs text-primary-600 font-medium bg-primary-50 px-3 py-1.5 rounded-lg inline-block border border-primary-100 mb-2">
+                Mostrando últimos 60 datos: desde el {format(readings[0].timestamp, 'dd/MM/yyyy HH:mm')} hasta el {format(readings[readings.length - 1].timestamp, 'dd/MM/yyyy HH:mm')}
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <SensorChart title="Niveles de Temperatura"       dataKey="temperature" color="#f97316" unit="°C"  readings={readings} chartId="hist-temp" isLoading={isLoadingSeries} />
+              <SensorChart title="Niveles de pH"                dataKey="ph"          color="#22c55e" unit=""    readings={readings} chartId="hist-ph"   isLoading={isLoadingSeries} />
+              <SensorChart title="Niveles de Turbidez"          dataKey="turbidity"   color="#8b5cf6" unit=" NTU" readings={readings} chartId="hist-turb" isLoading={isLoadingSeries} />
+              <SensorChart title="Niveles de Oxígeno Disuelto"  dataKey="dissolved_oxygen" color="#3b82f6" unit=" mg/L" readings={readings} chartId="hist-do" isLoading={isLoadingSeries} />
+            </div>
+          </>
+        )}
       </section>
 
       {/* ── Custom Report Generator ──────────────────────────────────────── */}
@@ -503,65 +521,74 @@ export default function DashboardPage() {
         <h2 className="font-bold text-gray-900 text-lg">Generador de Reportes Personalizados</h2>
         <p className="text-sm text-gray-400 -mt-2">Análisis de correlación y comparación multivariable</p>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Variable X</label>
-              <select
-                value={formVarX}
-                onChange={(e) => setFormVarX(e.target.value as SensorVariable)}
-                className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
-              >
-                {VARIABLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Variable Y</label>
-              <select
-                value={formVarY}
-                onChange={(e) => setFormVarY(e.target.value as SensorVariable)}
-                className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
-              >
-                {VARIABLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Rango de fechas – Desde</label>
-              <input type="datetime-local" value={fmtDt(formFrom)} onChange={(e) => setFormFrom(new Date(e.target.value))}
-                className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Rango de fechas – Hasta</label>
-              <input type="datetime-local" value={fmtDt(formTo)} onChange={(e) => setFormTo(new Date(e.target.value))}
-                className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300" />
-            </div>
-          </div>
-          <button
-            onClick={() => addCustomChart(formVarX, formVarY, formFrom, formTo)}
-            className="mt-4 flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-          >
-            <span className="material-icons-round text-sm">add_chart</span>
-            Agregar Gráfica
-          </button>
-        </div>
-
-        {customCharts.length === 0 ? (
+        {!selectedDeviceId ? (
           <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm gap-3 text-gray-400">
-            <span className="material-icons-round text-4xl">bar_chart_4_bars</span>
-            <p className="text-sm font-medium">Aún no hay gráficas personalizadas.</p>
-            <p className="text-xs">Define tus variables y haz clic en "Agregar Gráfica" para comenzar.</p>
+            <span className="material-icons-round text-4xl">touch_app</span>
+            <p className="text-sm font-medium">Selecciona una boya del mapa para generar reportes.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {customCharts.map((c) => (
-              <CustomChartCard
-                key={c.id}
-                chart={c}
-                readings={readings}
-                onRemove={() => removeCustomChart(c.id)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Variable X</label>
+                  <select
+                    value={formVarX}
+                    onChange={(e) => setFormVarX(e.target.value as SensorVariable)}
+                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  >
+                    {VARIABLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Variable Y</label>
+                  <select
+                    value={formVarY}
+                    onChange={(e) => setFormVarY(e.target.value as SensorVariable)}
+                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  >
+                    {VARIABLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Rango de fechas – Desde</label>
+                  <input type="datetime-local" value={fmtDt(formFrom)} onChange={(e) => setFormFrom(new Date(e.target.value))}
+                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Rango de fechas – Hasta</label>
+                  <input type="datetime-local" value={fmtDt(formTo)} onChange={(e) => setFormTo(new Date(e.target.value))}
+                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                </div>
+              </div>
+              <button
+                onClick={() => addCustomChart(formVarX, formVarY, formFrom, formTo)}
+                className="mt-4 flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+              >
+                <span className="material-icons-round text-sm">add_chart</span>
+                Agregar Gráfica
+              </button>
+            </div>
+
+            {customCharts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm gap-3 text-gray-400">
+                <span className="material-icons-round text-4xl">bar_chart_4_bars</span>
+                <p className="text-sm font-medium">Aún no hay gráficas personalizadas.</p>
+                <p className="text-xs">Define tus variables y haz clic en "Agregar Gráfica" para comenzar.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {customCharts.map((c) => (
+                  <CustomChartCard
+                    key={c.id}
+                    chart={c}
+                    readings={readings}
+                    onRemove={() => removeCustomChart(c.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
 

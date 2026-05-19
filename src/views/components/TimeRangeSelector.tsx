@@ -1,11 +1,12 @@
 import { TimePreset } from '../../controllers/dashboardController';
 
 const PRESETS: { value: TimePreset; label: string }[] = [
-  { value: '1h',     label: 'Última hora'     },
-  { value: '6h',     label: 'Últimas 6 h'     },
-  { value: '24h',    label: 'Últimas 24 h'    },
-  { value: '7d',     label: 'Últimos 7 d'     },
-  { value: 'custom', label: 'Personalizado…'  },
+  { value: '1h',             label: 'Última hora'     },
+  { value: '6h',             label: 'Últimas 6 h'     },
+  { value: '24h',            label: 'Últimas 24 h'    },
+  { value: '7d',             label: 'Últimos 7 d'     },
+  { value: 'last_available', label: 'Últimos disponibles' },
+  { value: 'custom',         label: 'Personalizado…'  },
 ];
 
 interface Props {

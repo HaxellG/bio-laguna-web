@@ -11,20 +11,21 @@ import {
 } from '../services/sensorService';
 import { CustomChart, FilterMode, SensorVariable, Zone, Device, SensorReading, DOPrediction } from '../models';
 
-export type TimePreset = '1h' | '6h' | '24h' | '7d' | 'custom';
+export type TimePreset = '1h' | '6h' | '24h' | '7d' | 'last_available' | 'custom';
 
-function presetToDates(preset: TimePreset): { from: Date; to: Date } {
+function presetToDates(preset: TimePreset): { from: Date | null; to: Date | null } {
   const to = new Date();
   switch (preset) {
     case '1h':  return { from: subHours(to, 1), to };
     case '6h':  return { from: subHours(to, 6), to };
     case '24h': return { from: subHours(to, 24), to };
     case '7d':  return { from: subDays(to, 7), to };
+    case 'last_available': return { from: null, to: null };
     default:    return { from: subHours(to, 1), to };
   }
 }
 
-export function useDashboard() {
+export function useDashboard(selectedDeviceId: string | null) {
   const [filterMode, setFilterMode] = useState<FilterMode>('zone');
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [selectedDeviceCodes, setSelectedDeviceCodes] = useState<string[]>([]);
@@ -110,16 +111,14 @@ export function useDashboard() {
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!selectedZoneId && selectedDeviceCodes.length === 0) return;
+      if (!selectedDeviceId) {
+        if (active) setReadings([]);
+        return;
+      }
       try {
         setIsLoadingSeries(true);
         setGlobalError(null);
-        let data: SensorReading[] = [];
-        if (filterMode === 'zone' && selectedZoneId) {
-          data = await getReadingsInRange(selectedZoneId, from, to);
-        } else if (filterMode === 'device' && selectedDeviceCodes.length > 0) {
-          data = await getReadingsByDeviceCodes(selectedDeviceCodes, from, to);
-        }
+        const data = await getReadingsByDeviceCodes([selectedDeviceId], from, to);
         if (active) setReadings(data);
       } catch (err) {
         console.error('Failed to load timeline readings:', err);
@@ -129,7 +128,7 @@ export function useDashboard() {
       }
     })();
     return () => { active = false; };
-  }, [filterMode, selectedZoneId, selectedDeviceCodes, from, to]);
+  }, [selectedDeviceId, from, to]);
 
   const addCustomChart = useCallback(
     (varX: SensorVariable, varY: SensorVariable, cfrom: Date, cto: Date) => {

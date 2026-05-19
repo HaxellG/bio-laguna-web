@@ -25,12 +25,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const codes = deviceCodes.split(',');
       query = query.in('device_id', codes);
     }
+
+    if (!from && !to) {
+      // "Últimos disponibles"
+      query = query.order('created_at', { ascending: false }).limit(60);
+    } else {
+      query = query.order('created_at', { ascending: true });
+    }
+
     // Si envían zoneId y no deviceCodes, por ahora asumimos Global, entonces fetch todo el rango temporal
 
     const { data, error } = await query;
     if (error) throw error;
 
-    const readings = (data || []).map((row: any) => ({
+    let results = data || [];
+    if (!from && !to) {
+      results = results.reverse(); // Hacer que las gráficas fluyan en orden cronológico (izquierda a derecha)
+    }
+
+    const readings = results.map((row: any) => ({
       timestamp: new Date(row.created_at),
       temperature: row.temperature,
       ph: row.ph,

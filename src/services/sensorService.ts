@@ -58,10 +58,13 @@ export async function getReadingsInRange(
 
 export async function getReadingsByDeviceCodes(
   codes: string[],
-  from: Date,
-  to: Date,
+  from: Date | null,
+  to: Date | null,
 ): Promise<SensorReading[]> {
-  const query = new URLSearchParams({ deviceCodes: codes.join(','), from: from.toISOString(), to: to.toISOString() });
+  const params: Record<string, string> = { deviceCodes: codes.join(',') };
+  if (from) params.from = from.toISOString();
+  if (to) params.to = to.toISOString();
+  const query = new URLSearchParams(params);
   const res = await fetch(`${API_BASE}/readings/history?${query}`);
   if (!res.ok) throw new Error('Error fetching history by codes');
   const data = await res.json();
