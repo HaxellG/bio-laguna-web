@@ -128,6 +128,18 @@ export default function DashboardPage() {
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleAddCode = () => {
     const code = codeInput.trim();
@@ -269,42 +281,104 @@ export default function DashboardPage() {
 
           {/* Device code selector */}
           {filterMode === 'device' && (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500 font-medium">Escribe el código de uno o varios dispositivos:</p>
+            <div className="space-y-3" ref={dropdownRef}>
+              <p className="text-xs text-gray-500 font-medium">Selecciona uno o varios dispositivos (puedes buscar escribiendo):</p>
 
-              {/* Input row */}
-              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-                <div className="relative flex-1 min-w-[160px]">
+              <div className="relative">
+                <div 
+                  className={`flex flex-wrap items-center gap-1.5 p-1.5 border rounded-xl bg-white transition-shadow cursor-text min-h-[42px] ${
+                    isDropdownOpen ? 'border-primary-400 ring-2 ring-primary-100' : 'border-gray-200 hover:border-primary-300'
+                  }`}
+                  onClick={() => { setIsDropdownOpen(true); inputRef.current?.focus(); }}
+                >
+                  {selectedDeviceCodes.map((code) => {
+                    const dev = allDevices.find((d) => d.code === code);
+                    return (
+                      <span
+                        key={code}
+                        className="flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-semibold px-2 py-1 rounded-lg border border-primary-100"
+                      >
+                        <span className="material-icons-round text-[14px]">memory</span>
+                        {code}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveCode(code);
+                          }}
+                          className="hover:bg-primary-200 hover:text-red-500 rounded-full transition-colors ml-0.5"
+                        >
+                          <span className="material-icons-round text-[14px]">close</span>
+                        </button>
+                      </span>
+                    );
+                  })}
                   <input
                     ref={inputRef}
                     type="text"
                     value={codeInput}
-                    onChange={(e) => { setCodeInput(e.target.value.trim()); setCodeError(''); }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddCode()}
-                    placeholder="Ej: buoy_live_01"
-                    list="device-codes-list"
-                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 placeholder:text-gray-400"
+                    onChange={(e) => {
+                      setCodeInput(e.target.value);
+                      setIsDropdownOpen(true);
+                      setCodeError('');
+                    }}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const matchingOptions = mapDevices.filter(
+                          (d) => !selectedDeviceCodes.includes(d.device_id) && 
+                                 d.device_id.toLowerCase().includes(codeInput.toLowerCase())
+                        );
+                        if (matchingOptions.length === 1) {
+                          setSelectedDeviceCodes([...selectedDeviceCodes, matchingOptions[0].device_id]);
+                          setCodeInput('');
+                        } else {
+                          handleAddCode();
+                        }
+                      } else if (e.key === 'Backspace' && codeInput === '' && selectedDeviceCodes.length > 0) {
+                        const newCodes = [...selectedDeviceCodes];
+                        newCodes.pop();
+                        setSelectedDeviceCodes(newCodes);
+                      }
+                    }}
+                    placeholder={selectedDeviceCodes.length === 0 ? "Ej: buoy_live_01" : ""}
+                    className="flex-1 min-w-[120px] text-sm px-2 py-0.5 bg-transparent border-none focus:outline-none placeholder:text-gray-400"
                   />
-                  <datalist id="device-codes-list">
+                </div>
+
+                {/* Dropdown Options */}
+                {isDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {mapDevices
-                      .filter((d) => !selectedDeviceCodes.includes(d.device_id))
+                      .filter((d) => !selectedDeviceCodes.includes(d.device_id) && d.device_id.toLowerCase().includes(codeInput.toLowerCase()))
                       .map((d) => {
                         const fullDev = allDevices.find(a => a.code === d.device_id);
                         return (
-                          <option key={d.device_id} value={d.device_id}>
-                            {d.device_id} {fullDev ? `— ${fullDev.zoneName}` : ''}
-                          </option>
+                          <div
+                            key={d.device_id}
+                            onClick={() => {
+                              setSelectedDeviceCodes([...selectedDeviceCodes, d.device_id]);
+                              setCodeInput('');
+                              inputRef.current?.focus();
+                            }}
+                            className="px-3 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 cursor-pointer flex items-center justify-between transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="material-icons-round text-[16px] text-gray-400">memory</span>
+                              <span className="font-medium">{d.device_id}</span>
+                            </div>
+                            {fullDev && <span className="text-xs text-gray-400">{fullDev.zoneName}</span>}
+                          </div>
                         );
                       })}
-                  </datalist>
-                </div>
-                <button
-                  onClick={handleAddCode}
-                  className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors whitespace-nowrap"
-                >
-                  <span className="material-icons-round text-base">add</span>
-                  Agregar
-                </button>
+                    {mapDevices.filter((d) => !selectedDeviceCodes.includes(d.device_id) && d.device_id.toLowerCase().includes(codeInput.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-3 text-sm text-gray-400 text-center flex flex-col items-center gap-1">
+                        <span className="material-icons-round text-lg">search_off</span>
+                        No hay opciones disponibles
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Error */}
@@ -314,58 +388,6 @@ export default function DashboardPage() {
                   {codeError}
                 </p>
               )}
-
-              {/* Selected device tags */}
-              {selectedDeviceCodes.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedDeviceCodes.map((code) => {
-                    const dev = allDevices.find((d) => d.code === code);
-                    return (
-                      <span
-                        key={code}
-                        className="flex items-center gap-1.5 bg-primary-50 border border-primary-200 text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full"
-                      >
-                        <span className="material-icons-round text-sm">memory</span>
-                        {code}
-                        {dev && <span className="font-normal text-primary-500">· {dev.zoneName.split('–')[0].trim()}</span>}
-                        <button
-                          onClick={() => handleRemoveCode(code)}
-                          className="ml-0.5 hover:text-red-500 transition-colors"
-                          aria-label={`Eliminar ${code}`}
-                        >
-                          <span className="material-icons-round text-sm">close</span>
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-
-              {selectedDeviceCodes.length === 0 && (
-                <p className="text-xs text-gray-400 flex items-center gap-1">
-                  <span className="material-icons-round text-sm">info</span>
-                  Ningún dispositivo seleccionado. Agrega al menos uno para ver datos.
-                </p>
-              )}
-
-              {/* Available codes hint */}
-              <details className="text-xs text-gray-400">
-                <summary className="cursor-pointer select-none hover:text-gray-600 transition-colors">
-                  Ver códigos disponibles
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {mapDevices.map((d) => (
-                    <button
-                      key={d.device_id}
-                      onClick={() => { setCodeInput(d.device_id); inputRef.current?.focus(); }}
-                      disabled={selectedDeviceCodes.includes(d.device_id)}
-                      className="px-2 py-0.5 rounded-lg border text-xs font-mono transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-gray-200 hover:border-primary-300 hover:text-primary-600 bg-white"
-                    >
-                      {d.device_id}
-                    </button>
-                  ))}
-                </div>
-              </details>
             </div>
           )}
 
