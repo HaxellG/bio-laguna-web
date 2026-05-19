@@ -124,12 +124,37 @@ export default function DashboardPage() {
     };
   }, [selectedDeviceId]);
 
+  // Device code input state
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddCode = () => {
+    const code = codeInput.trim();
+    if (!code) return;
+    const device = mapDevices.find((d) => d.device_id === code);
+    if (!device) {
+      setCodeError(`Código "${code}" no encontrado o inactivo en el mapa`);
+      return;
+    }
+    if (selectedDeviceCodes.includes(code)) {
+      setCodeError(`El dispositivo "${code}" ya fue agregado`);
+      return;
+    }
+    setSelectedDeviceCodes([...selectedDeviceCodes, code]);
+    setCodeInput('');
+    setCodeError('');
+    inputRef.current?.focus();
+  };
+
   const handleRemoveCode = (code: string) => {
     setSelectedDeviceCodes(selectedDeviceCodes.filter((c) => c !== code));
   };
 
   const handleModeChange = (mode: FilterMode) => {
     setFilterMode(mode);
+    setCodeError('');
+    setCodeInput('');
   };
 
   // Custom chart form state
@@ -245,48 +270,102 @@ export default function DashboardPage() {
           {/* Device code selector */}
           {filterMode === 'device' && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500 font-medium">Selecciona uno o varios dispositivos disponibles en el mapa:</p>
+              <p className="text-xs text-gray-500 font-medium">Escribe el código de uno o varios dispositivos:</p>
 
-              <div className="flex flex-wrap gap-2">
-                {mapDevices.map((d) => {
-                  const isSelected = selectedDeviceCodes.includes(d.device_id);
-                  return (
-                    <button
-                      key={d.device_id}
-                      onClick={() => {
-                        if (isSelected) {
-                          handleRemoveCode(d.device_id);
-                        } else {
-                          setSelectedDeviceCodes([...selectedDeviceCodes, d.device_id]);
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-primary-50 border-primary-400 text-primary-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600'
-                      }`}
-                    >
-                      <span className="material-icons-round text-[16px]">
-                        {isSelected ? 'check_circle' : 'memory'}
-                      </span>
-                      {d.device_id}
-                    </button>
-                  );
-                })}
+              {/* Input row */}
+              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                <div className="relative flex-1 min-w-[160px]">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={codeInput}
+                    onChange={(e) => { setCodeInput(e.target.value.trim()); setCodeError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddCode()}
+                    placeholder="Ej: buoy_live_01"
+                    list="device-codes-list"
+                    className="w-full border border-gray-200 rounded-xl text-sm px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 placeholder:text-gray-400"
+                  />
+                  <datalist id="device-codes-list">
+                    {mapDevices
+                      .filter((d) => !selectedDeviceCodes.includes(d.device_id))
+                      .map((d) => {
+                        const fullDev = allDevices.find(a => a.code === d.device_id);
+                        return (
+                          <option key={d.device_id} value={d.device_id}>
+                            {d.device_id} {fullDev ? `— ${fullDev.zoneName}` : ''}
+                          </option>
+                        );
+                      })}
+                  </datalist>
+                </div>
+                <button
+                  onClick={handleAddCode}
+                  className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors whitespace-nowrap"
+                >
+                  <span className="material-icons-round text-base">add</span>
+                  Agregar
+                </button>
               </div>
 
-              {selectedDeviceCodes.length === 0 && mapDevices.length > 0 && (
-                <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+              {/* Error */}
+              {codeError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <span className="material-icons-round text-sm">error_outline</span>
+                  {codeError}
+                </p>
+              )}
+
+              {/* Selected device tags */}
+              {selectedDeviceCodes.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedDeviceCodes.map((code) => {
+                    const dev = allDevices.find((d) => d.code === code);
+                    return (
+                      <span
+                        key={code}
+                        className="flex items-center gap-1.5 bg-primary-50 border border-primary-200 text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full"
+                      >
+                        <span className="material-icons-round text-sm">memory</span>
+                        {code}
+                        {dev && <span className="font-normal text-primary-500">· {dev.zoneName.split('–')[0].trim()}</span>}
+                        <button
+                          onClick={() => handleRemoveCode(code)}
+                          className="ml-0.5 hover:text-red-500 transition-colors"
+                          aria-label={`Eliminar ${code}`}
+                        >
+                          <span className="material-icons-round text-sm">close</span>
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {selectedDeviceCodes.length === 0 && (
+                <p className="text-xs text-gray-400 flex items-center gap-1">
                   <span className="material-icons-round text-sm">info</span>
-                  Ningún dispositivo seleccionado. Haz clic en al menos uno para filtrar el mapa y KPIs.
+                  Ningún dispositivo seleccionado. Agrega al menos uno para ver datos.
                 </p>
               )}
-              {mapDevices.length === 0 && (
-                <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                  <span className="material-icons-round text-sm">warning</span>
-                  No hay boyas activas en este momento.
-                </p>
-              )}
+
+              {/* Available codes hint */}
+              <details className="text-xs text-gray-400">
+                <summary className="cursor-pointer select-none hover:text-gray-600 transition-colors">
+                  Ver códigos disponibles
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {mapDevices.map((d) => (
+                    <button
+                      key={d.device_id}
+                      onClick={() => { setCodeInput(d.device_id); inputRef.current?.focus(); }}
+                      disabled={selectedDeviceCodes.includes(d.device_id)}
+                      className="px-2 py-0.5 rounded-lg border text-xs font-mono transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-gray-200 hover:border-primary-300 hover:text-primary-600 bg-white"
+                    >
+                      {d.device_id}
+                    </button>
+                  ))}
+                </div>
+              </details>
             </div>
           )}
 
