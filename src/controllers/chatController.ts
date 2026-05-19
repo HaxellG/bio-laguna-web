@@ -5,7 +5,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: '0',
     role: 'assistant',
-    content: '¡Hola! He conectado mi interfaz al servidor Backend de Bio-Laguna. ¿En qué te puedo asesorar frente al monitoreo de agua de hoy?',
+    content: '¡Hola! ¿En qué te puedo asesorar frente al monitoreo de agua de hoy?',
     timestamp: new Date(),
   },
 ];

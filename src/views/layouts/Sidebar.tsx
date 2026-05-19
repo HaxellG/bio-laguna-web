@@ -40,13 +40,9 @@ export default function Sidebar({ open, onClose }: Props) {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between gap-2 px-6 py-5 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="material-icons-round text-primary-500 text-3xl">biotech</span>
-            <div className="leading-tight">
-              <p className="font-semibold text-gray-900 text-sm">Bio-Laguna</p>
-              <p className="text-xs text-gray-400 font-medium">Monitoreo Ambiental</p>
-            </div>
+        <div className="flex items-center justify-between gap-2 px-6 pt-5 pb-2 border-b border-gray-100">
+          <div className="flex items-center w-full justify-center">
+            <img src="/bio-laguna-logo.png" alt="Bio-Laguna" className="h-20 w-auto object-contain" />
           </div>
           {/* Close button - mobile only */}
           <button

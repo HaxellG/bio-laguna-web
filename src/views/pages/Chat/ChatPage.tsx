@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useChat } from '../../../controllers/chatController';
 import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatPage() {
   const { messages, input, setInput, loading, submit } = useChat();
@@ -36,9 +37,9 @@ export default function ChatPage() {
 
         {/* Capabilities notice */}
         <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2">
-          <span className="material-icons-round text-primary-500 text-sm mt-0.5">info</span>
+          <span className="material-icons-round text-primary-500 text-sm ">info</span>
           <p className="text-xs text-gray-500 leading-relaxed">
-            <strong className="text-gray-700">Capacidades del sistema:</strong> El asistente ofrece análisis teórico de cuerpos de agua y variables de sensores. Nota: El asistente no puede generar gráficas directamente — usa el <strong className="text-primary-600">Dashboard</strong> para visualizar datos.
+            El asistente ofrece análisis teórico de cuerpos de agua y variables de sensores. El asistente no puede generar gráficas directamente, usa el <strong className="text-primary-600">Dashboard</strong> para visualizar datos.
           </p>
         </div>
       </div>
@@ -61,12 +62,39 @@ export default function ChatPage() {
 
             {/* Bubble */}
             <div className={`max-w-[85%] sm:max-w-[70%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
-              <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+              <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === 'assistant'
                   ? 'bg-white border border-gray-100 shadow-sm text-gray-800'
-                  : 'bg-primary-500 text-white'
+                  : 'bg-primary-500 text-white whitespace-pre-wrap'
               }`}>
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                      strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
+                      em: ({ node, ...props }) => <em className="italic" {...props} />,
+                      ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-1" {...props} />,
+                      ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-1" {...props} />,
+                      li: ({ node, ...props }) => <li {...props} />,
+                      h1: ({ node, ...props }) => <h1 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                      h2: ({ node, ...props }) => <h2 className="text-[15px] font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                      h3: ({ node, ...props }) => <h3 className="text-sm font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                      code({node, className, children, ...props}: any) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !match ? (
+                          <code className="bg-black/5 rounded px-1 py-0.5 text-[13px] font-mono" {...props}>{children}</code>
+                        ) : (
+                          <code className={className} {...props}>{children}</code>
+                        )
+                      },
+                      pre: ({node, ...props}: any) => <pre className="bg-black/5 rounded-lg p-3 my-2 overflow-x-auto text-[13px] font-mono" {...props} />,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </div>
               <p className="text-xs text-gray-400 mt-1 px-1">
                 {msg.role === 'assistant' ? 'Asistente' : 'Tú'} · {format(msg.timestamp, 'HH:mm')}
@@ -94,7 +122,7 @@ export default function ChatPage() {
 
       {/* ── Input ────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-4 sm:px-8 py-3 sm:py-4 bg-white border-t border-gray-100">
-        <div className="flex items-end gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary-300 focus-within:border-primary-300 transition-all">
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary-300 focus-within:border-primary-300 transition-all">
           <textarea
             rows={1}
             value={input || ''}
@@ -112,7 +140,7 @@ export default function ChatPage() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mt-2">
-          El asistente de Bio-Analytics puede cometer errores. Verifica los datos críticos en el Dashboard oficial.
+          El asistente de Bio-Laguna puede cometer errores. Verifica los datos críticos en el Dashboard oficial.
         </p>
       </div>
     </div>
