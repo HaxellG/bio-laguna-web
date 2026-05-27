@@ -87,7 +87,7 @@ Si te preguntan por algo fuera de tu alcance, recuérdale amablemente al usuario
     }
 
     const llm = new ChatOpenAI({
-      model: "gpt-4.1-mini",
+      model: "gpt-5.5",
       temperature: 0.2,
       maxTokens: 350,
     });
